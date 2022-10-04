@@ -9,6 +9,7 @@
 #include "tf2/exceptions.h"
 #include "tf2/LinearMath/Quaternion.h"
 #include "tf2_ros/transform_broadcaster.h"
+#include "tf2_ros/static_transform_broadcaster.h"
 
 using namespace std::chrono_literals;
 
@@ -19,7 +20,10 @@ public:
     {
         timer_ = this->create_wall_timer(10ms, std::bind(&FramePub::TimerCallback, this));
         tf_broadcaster_ = std::make_unique<tf2_ros::TransformBroadcaster>(*this);
-        tf_broadcaster2_ = std::make_unique<tf2_ros::TransformBroadcaster>(*this);
+        static_tf_broadcaster_ = std::make_unique<tf2_ros::StaticTransformBroadcaster>(*this);
+
+        StaticTransform("base", "arm", 1, 0, 0, 0, 0, 0);
+        StaticTransform("wrist", "tip", 0, 0, 1, 0, 0, 0);
     }
 
 private:
@@ -28,55 +32,55 @@ private:
     void TimerCallback()
     {
         cnt += 1;
-        Transform();
-        if (cnt % 3 == 0) {
-            Transform2();
-        }
-        try {
-        } catch (...) {
-          RCLCPP_ERROR(this->get_logger(), "wtf");
-          return;
-        }
+        Transform("world", "base", 0, 0, 0, 0, tf2Radians(cnt), 0);
+        Transform("arm", "wrist", 0, 0, 0, tf2Radians(cnt*10), 0, 0);
     }
 
-    void Transform() {
+    void Transform(const std::string& parent, const std::string& child,
+     double x, double y, double z, double r, double p, double Y) {
         geometry_msgs::msg::TransformStamped t;
         t.header.stamp = this->get_clock()->now();
-        t.header.frame_id = "world";
-        t.child_frame_id = "base";
+        t.header.frame_id = parent;
+        t.child_frame_id = child;
+
+        t.transform.translation.x = x;
+        t.transform.translation.y = y;
+        t.transform.translation.z = z;
 
         tf2::Quaternion q;
-        q.setRPY(0, 0, tf2Radians(cnt));
+        q.setRPY(r, p, Y);
         t.transform.rotation.x = q.x();
         t.transform.rotation.y = q.y();
         t.transform.rotation.z = q.z();
         t.transform.rotation.w = q.w();
 
         tf_broadcaster_->sendTransform(t);
-        RCLCPP_INFO(this->get_logger(), "rotated %d deg", cnt);
+        // RCLCPP_INFO(this->get_logger(), "rotated %d deg", cnt);
     }
 
-    void Transform2()
+    void StaticTransform(const std::string& parent, const std::string& child,
+     double x, double y, double z, double r, double p, double Y) 
     {
         geometry_msgs::msg::TransformStamped t;
-        t.header.stamp = this->get_clock()->now();
-        t.header.frame_id = "base";
-        t.child_frame_id = "arm";
+        t.header.frame_id = parent;
+        t.child_frame_id = child;
 
-        t.transform.translation.x = 1.0 * cos(tf2Radians(cnt)*2);
-        t.transform.translation.z = 1.0 * sin(tf2Radians(cnt)*2);
+        t.transform.translation.x = x;
+        t.transform.translation.y = y;
+        t.transform.translation.z = z;
 
         tf2::Quaternion q;
-        q.setRPY(tf2Radians(cnt)*2, 0, 0);
+        q.setRPY(r, p, Y);
         t.transform.rotation.x = q.x();
         t.transform.rotation.y = q.y();
         t.transform.rotation.z = q.z();
         t.transform.rotation.w = q.w();
-        tf_broadcaster2_->sendTransform(t);
+
+        static_tf_broadcaster_->sendTransform(t);
     }
 
     std::unique_ptr<tf2_ros::TransformBroadcaster> tf_broadcaster_;
-    std::unique_ptr<tf2_ros::TransformBroadcaster> tf_broadcaster2_;
+    std::unique_ptr<tf2_ros::StaticTransformBroadcaster> static_tf_broadcaster_;
 };
 
 int main(int argc, char ** argv)
