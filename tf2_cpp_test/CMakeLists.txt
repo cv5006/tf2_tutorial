@@ -31,12 +31,26 @@ ament_target_dependencies(
   tf2
   tf2_ros
 )
+add_executable(robot_frame src/robot_frame.cpp src/frame_unit.cpp)
+ament_target_dependencies(
+  robot_frame
+  geometry_msgs
+  rclcpp
+  tf2
+  tf2_ros
+)
 
 target_include_directories(frame_pub PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>)
+  
+target_include_directories(robot_frame PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:include>)
 
-install(TARGETS frame_pub
+install(TARGETS
+  frame_pub
+  robot_frame
   DESTINATION lib/${PROJECT_NAME})
 
 if(BUILD_TESTING)
