@@ -34,5 +34,8 @@ private:
     FrameUnit link0_;
     FrameUnit link1_;
     FrameUnit link2_;
-
+    FrameUnit link3_;
+    FrameUnit link4_;
+    FrameUnit link5_;
+    FrameUnit link6_;
 };
